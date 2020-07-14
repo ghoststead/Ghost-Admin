@@ -28,6 +28,17 @@
                 </a>
             </li>
         </ul>
+
+        {{#if session.user.isOwner}}
+            <ul class="gh-nav-list gh-nav-stead">
+                <li>
+                    <a href="https://my.ghoststead.com/" title="GhostStead" target="_blank">
+                        {{svg-jar "heart-circle"}} GhostStead
+                    </a>
+                </li>
+            </ul>
+        {{/if}}
+
         <ul class="gh-nav-list gh-nav-manage">
             <li class="gh-nav-list-h">Manage</li>
             <li class="gh-nav-list-new relative">

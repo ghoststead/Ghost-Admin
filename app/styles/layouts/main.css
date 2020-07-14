@@ -534,6 +534,10 @@
     background: var(--pink);
 }
 
+.gh-nav-stead {
+    margin-top: -20px;
+}
+
 /* Mobile Nav Menu (Slides out)
 /* ---------------------------------------------------------- */
 

@@ -430,7 +430,7 @@
                         <GhFormGroup @errors={{this.settings.errors}} @hasValidated={{this.settings.hasValidated}} @property="facebook">
                             <GhTextInput
                                 @type="url"
-                                @placeholder="https://www.facebook.com/ghost"
+                                @placeholder="https://www.facebook.com/ghoststead"
                                 @autocorrect="off"
                                 @value={{readonly this.settings.facebook}}
                                 @input={{action (mut this._scratchFacebook) value="target.value"}}
@@ -443,7 +443,7 @@
                         <GhFormGroup @errors={{this.settings.errors}} @hasValidated={{this.settings.hasValidated}} @property="twitter">
                             <GhTextInput
                                 @type="url"
-                                @placeholder="https://twitter.com/ghost"
+                                @placeholder="https://twitter.com/ghoststead"
                                 @autocorrect="off"
                                 @value={{readonly this.settings.twitter}}
                                 @input={{action (mut this._scratchTwitter) value="target.value"}}
