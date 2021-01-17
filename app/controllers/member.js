@@ -2,7 +2,6 @@ import Controller, {inject as controller} from '@ember/controller';
 import EmberObject, {action, defineProperty} from '@ember/object';
 import boundOneWay from 'ghost-admin/utils/bound-one-way';
 import moment from 'moment';
-import {alias} from '@ember/object/computed';
 import {inject as service} from '@ember/service';
 import {task} from 'ember-concurrency-decorators';
 import {tracked} from '@glimmer/tracking';
@@ -27,7 +26,13 @@ export default class MemberController extends Controller {
 
     // Computed properties -----------------------------------------------------
 
-    @alias('model') member;
+    get member() {
+        return this.model;
+    }
+
+    set member(member) {
+        this.model = member;
+    }
 
     get scratchMember() {
         let scratchMember = EmberObject.create({member: this.member});
@@ -65,8 +70,13 @@ export default class MemberController extends Controller {
     }
 
     @action
-    deleteMember() {
-        return this.member.destroyRecord().then(() => {
+    deleteMember(cancelSubscriptions = false) {
+        let options = {
+            adapterOptions: {
+                cancel: cancelSubscriptions
+            }
+        };
+        return this.member.destroyRecord(options).then(() => {
             this.members.refreshData();
             return this.transitionToRoute('members');
         }, (error) => {

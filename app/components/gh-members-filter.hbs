@@ -1,15 +1,18 @@
 <span class="dropdown dropdown-topmenu">
     <GhDropdownButton
         @dropdownName="members-label-menu"
-        @classNames="gh-btn gh-btn-white gh-btn-filter first" @title="Member Labels"
+        @classNames="gh-contentfilter-menu-trigger" @title="Member Labels"
         @data-test-user-actions="true">
-        <span class="nudge-bottom--1 {{if @selectedLabel.slug "blue fw6"}} gh-btn-filter-maxwidth" title="{{@selectedLabel.name}}">
+        <span class="{{if @selectedLabel.slug "blue fw6"}} gh-btn-filter-maxwidth" title="{{@selectedLabel.name}}">
             <span>{{@selectedLabel.name}}</span>
-            {{svg-jar "arrow-down-stroke" class="w2 h2 stroke-midgrey ml1"}}
+            {{svg-jar "arrow-down-small"}}
         </span>
     </GhDropdownButton>
-    <GhDropdown @name="members-label-menu" @tagName="div"
-        @classNames="dropdown-menu dropdown-triangle-top-right dropdown-action">
+    <GhDropdown
+        @name="members-label-menu"
+        @tagName="div"
+        @classNames="dropdown-menu dropdown-triangle-top-right dropdown-action members-label-list"
+    >
         <ul class="dropdown-content">
             {{#each @availableLabels as |label|}}
                 <li class="{{if (eq @selectedLabel.name label.name) "selected"}}">
@@ -49,5 +52,21 @@
         as |paidParam|
     >
         {{#if paidParam.name}}{{paidParam.name}}{{else}}<span class="red">Unknown paid status</span>{{/if}}
+    </PowerSelect>
+</div>
+
+<div class="gh-contenfilter-menu gh-contentfilter-sort" data-test-select="members-order">
+    <PowerSelect
+        @selected={{@selectedOrder}}
+        @options={{@availableOrders}}
+        @searchEnabled={{false}}
+        @onChange={{@onOrderChange}}
+        @triggerComponent="gh-power-select/trigger"
+        @triggerClass="gh-contentfilter-menu-trigger"
+        @dropdownClass="gh-contentfilter-menu-dropdown"
+        @matchTriggerWidth={{false}}
+        as |order|
+    >
+        {{#if order.name}}{{order.name}}{{else}}<span class="red">Unknown</span>{{/if}}
     </PowerSelect>
 </div>

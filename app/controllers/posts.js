@@ -48,6 +48,7 @@ const ORDERS = [{
 }];
 
 export default Controller.extend({
+    feature: service(),
     session: service(),
     store: service(),
 
@@ -56,6 +57,7 @@ export default Controller.extend({
 
     _hasLoadedTags: false,
     _hasLoadedAuthors: false,
+    _hasLoadedSnippets: false,
 
     availableTypes: null,
     availableVisibilities: null,
@@ -67,6 +69,13 @@ export default Controller.extend({
         this.availableOrders = ORDERS;
         this.availableVisibilities = VISIBILITIES;
         this.setProperties(DEFAULT_QUERY_PARAMS.posts);
+
+        if (this.feature.get('emailAnalytics') && !this.availableOrders.findBy('name', 'Open rate')) {
+            this.availableOrders.push({
+                name: 'Open rate',
+                value: 'email.open_rate desc'
+            });
+        }
     },
 
     postsInfinityModel: alias('model'),
@@ -131,6 +140,10 @@ export default Controller.extend({
         let authors = this.get('availableAuthors');
 
         return authors.findBy('slug', author) || {slug: '!unknown'};
+    }),
+
+    snippets: computed(function () {
+        return this.store.peekAll('snippet');
     }),
 
     actions: {

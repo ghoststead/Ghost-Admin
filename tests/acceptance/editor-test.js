@@ -1,4 +1,5 @@
 import Mirage from 'ember-cli-mirage';
+import ctrlOrCmd from 'ghost-admin/utils/ctrl-or-cmd';
 import moment from 'moment';
 import sinon from 'sinon';
 import {authenticateSession, invalidateSession} from 'ember-simple-auth/test-support';
@@ -360,7 +361,7 @@ describe('Acceptance: Editor', function () {
             expect(
                 find('[data-test-editor-post-status]').textContent.trim(),
                 'scheduled post status'
-            ).to.match(/Will be published in (4|5) minutes./);
+            ).to.match(/Will be published in (4|5) minutes/);
 
             // Re-schedule
             await click('[data-test-publishmenu-trigger]');
@@ -387,7 +388,7 @@ describe('Acceptance: Editor', function () {
             expect(
                 find('[data-test-editor-post-status]').textContent.trim(),
                 'scheduled status text'
-            ).to.match(/Will be published in (4|5) minutes\./);
+            ).to.match(/Will be published in (4|5) minutes/);
 
             // unschedule
             await click('[data-test-publishmenu-trigger]');
@@ -828,6 +829,28 @@ describe('Acceptance: Editor', function () {
                 findAll('[data-test-field="og-title"]').length,
                 'facebook title not present after closing subview'
             ).to.equal(0);
+        });
+
+        // https://github.com/TryGhost/Ghost/issues/11786
+        it('save shortcut works when tags/authors field is focused', async function () {
+            let post = this.server.create('post', {authors: [author]});
+
+            await visit(`/editor/post/${post.id}`);
+            await fillIn('[data-test-editor-title-input]', 'CMD-S Test');
+
+            await click('[data-test-psm-trigger]');
+            await click('[data-test-token-input]');
+
+            await triggerEvent('[data-test-token-input]', 'keydown', {
+                keyCode: 83, // s
+                metaKey: ctrlOrCmd === 'command',
+                ctrlKey: ctrlOrCmd === 'ctrl'
+            });
+
+            // Check if save request has been sent correctly.
+            let [lastRequest] = this.server.pretender.handledRequests.slice(-1);
+            let body = JSON.parse(lastRequest.requestBody);
+            expect(body.posts[0].title).to.equal('CMD-S Test');
         });
     });
 });

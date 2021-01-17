@@ -28,6 +28,17 @@ const CURRENCIES = [
     }
 ];
 
+const REPLY_ADDRESSES = [
+    {
+        label: 'Newsletter email address',
+        value: 'newsletter'
+    },
+    {
+        label: 'Support email address',
+        value: 'support'
+    }
+];
+
 export default Component.extend({
     feature: service(),
     config: service(),
@@ -37,11 +48,15 @@ export default Component.extend({
     settings: service(),
 
     currencies: null,
+    replyAddresses: null,
     showFromAddressConfirmation: false,
-    showMembersModalSettings: false,
+    showSupportAddressConfirmation: false,
+    showPortalSettings: false,
+    showEmailDesignSettings: false,
     stripePlanInvalidAmount: false,
     _scratchStripeYearlyAmount: null,
     _scratchStripeMonthlyAmount: null,
+    showLeaveSettingsModal: false,
 
     // passed in actions
     setStripeConnectIntegrationTokenSetting() {},
@@ -53,6 +68,7 @@ export default Component.extend({
     mailgunIsConfigured: reads('config.mailgunIsConfigured'),
 
     allowSelfSignup: reads('settings.membersAllowFreeSignup'),
+    emailTrackOpens: reads('settings.emailTrackOpens'),
 
     /** OLD **/
     stripeDirectPublicKey: reads('settings.stripePublishableKey'),
@@ -62,6 +78,12 @@ export default Component.extend({
     stripeConnectAccountName: reads('settings.stripeConnectDisplayName'),
     stripeConnectLivemode: reads('settings.stripeConnectLivemode'),
 
+    portalSettingsBorderColor: reads('settings.accentColor'),
+
+    selectedReplyAddress: computed('settings.membersReplyAddress', function () {
+        return REPLY_ADDRESSES.findBy('value', this.get('settings.membersReplyAddress'));
+    }),
+
     selectedCurrency: computed('stripePlans.monthly.currency', function () {
         return CURRENCIES.findBy('value', this.get('stripePlans.monthly.currency'));
     }),
@@ -69,9 +91,17 @@ export default Component.extend({
     disableUpdateFromAddressButton: computed('fromAddress', function () {
         const savedFromAddress = this.get('settings.membersFromAddress') || '';
         if (!savedFromAddress.includes('@') && this.blogDomain) {
-            return (this.fromAddress === `${savedFromAddress}@${this.blogDomain}`);
+            return !this.fromAddress || (this.fromAddress === `${savedFromAddress}@${this.blogDomain}`);
         }
-        return (this.fromAddress === savedFromAddress);
+        return !this.fromAddress || (this.fromAddress === savedFromAddress);
+    }),
+
+    disableUpdateSupportAddressButton: computed('supportAddress', function () {
+        const savedSupportAddress = this.get('settings.membersSupportAddress') || '';
+        if (!savedSupportAddress.includes('@') && this.blogDomain) {
+            return !this.supportAddress || (this.supportAddress === `${savedSupportAddress}@${this.blogDomain}`);
+        }
+        return !this.supportAddress || (this.supportAddress === savedSupportAddress);
     }),
 
     blogDomain: computed('config.blogDomain', function () {
@@ -119,6 +149,7 @@ export default Component.extend({
         this._super(...arguments);
         this.set('mailgunRegions', [US, EU]);
         this.set('currencies', CURRENCIES);
+        this.set('replyAddresses', REPLY_ADDRESSES);
     },
 
     actions: {
@@ -126,8 +157,17 @@ export default Component.extend({
             this.toggleProperty('showFromAddressConfirmation');
         },
 
-        closeMembersModalSettings() {
-            this.set('showMembersModalSettings', false);
+        closePortalSettings() {
+            const changedAttributes = this.settings.changedAttributes();
+            if (changedAttributes && Object.keys(changedAttributes).length > 0) {
+                this.set('showLeaveSettingsModal', true);
+            } else {
+                this.set('showPortalSettings', false);
+            }
+        },
+
+        closeEmailDesignSettings() {
+            this.set('showEmailDesignSettings', false);
         },
 
         setDefaultContentVisibility(value) {
@@ -136,10 +176,16 @@ export default Component.extend({
 
         setMailgunDomain(event) {
             this.set('settings.mailgunDomain', event.target.value);
+            if (!this.get('settings.mailgunBaseUrl')) {
+                this.set('settings.mailgunBaseUrl', this.mailgunRegion.baseUrl);
+            }
         },
 
         setMailgunApiKey(event) {
             this.set('settings.mailgunApiKey', event.target.value);
+            if (!this.get('settings.mailgunBaseUrl')) {
+                this.set('settings.mailgunBaseUrl', this.mailgunRegion.baseUrl);
+            }
         },
 
         setMailgunRegion(region) {
@@ -147,7 +193,18 @@ export default Component.extend({
         },
 
         setFromAddress(fromAddress) {
-            this.setFromAddress(fromAddress);
+            this.setEmailAddress('fromAddress', fromAddress);
+        },
+
+        setSupportAddress(supportAddress) {
+            this.setEmailAddress('supportAddress', supportAddress);
+        },
+
+        toggleEmailTrackOpens(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            this.set('settings.emailTrackOpens', !this.get('emailTrackOpens'));
         },
 
         toggleSelfSignup() {
@@ -233,6 +290,12 @@ export default Component.extend({
             this.set('settings.stripePlans', updatedPlans);
         },
 
+        setReplyAddress(event) {
+            const newReplyAddress = event.value;
+
+            this.set('settings.membersReplyAddress', newReplyAddress);
+        },
+
         setStripeConnectIntegrationToken(event) {
             this.set('settings.stripeProductName', this.get('settings.title'));
             this.setStripeConnectIntegrationTokenSetting(event.target.value);
@@ -248,6 +311,20 @@ export default Component.extend({
 
         disconnectStripeConnectIntegration() {
             this.disconnectStripeConnectIntegration.perform();
+        },
+
+        closeLeaveSettingsModal() {
+            this.set('showLeaveSettingsModal', false);
+        },
+
+        leavePortalSettings() {
+            this.settings.rollbackAttributes();
+            this.set('showPortalSettings', false);
+            this.set('showLeaveSettingsModal', false);
+        },
+
+        openStripeSettings() {
+            this.set('membersStripeOpen', true);
         }
     },
 
@@ -300,10 +377,28 @@ export default Component.extend({
         try {
             const response = yield this.ajax.post(url, {
                 data: {
-                    from_address: this.fromAddress
+                    email: this.fromAddress,
+                    type: 'fromAddressUpdate'
                 }
             });
             this.toggleProperty('showFromAddressConfirmation');
+            return response;
+        } catch (e) {
+            // Failed to send email, retry
+            return false;
+        }
+    }).drop(),
+
+    updateSupportAddress: task(function* () {
+        let url = this.get('ghostPaths.url').api('/settings/members/email');
+        try {
+            const response = yield this.ajax.post(url, {
+                data: {
+                    email: this.supportAddress,
+                    type: 'supportAddressUpdate'
+                }
+            });
+            this.toggleProperty('showSupportAddressConfirmation');
             return response;
         } catch (e) {
             // Failed to send email, retry

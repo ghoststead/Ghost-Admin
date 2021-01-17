@@ -1,31 +1,34 @@
 import ModalComponent from 'ghost-admin/components/modal-base';
-import {computed} from '@ember/object';
-import {pluralize} from 'ember-inflector';
+import {action} from '@ember/object';
 import {inject as service} from '@ember/service';
 import {task} from 'ember-concurrency';
 
 export default ModalComponent.extend({
     session: service(),
+    store: service(),
 
     errorMessage: null,
+    paidMemberCount: null,
+    freeMemberCount: null,
 
     // Allowed actions
     confirm: () => {},
 
-    deliveredToMessage: computed('model.{paidOnly,memberCount}', function () {
-        const isEditor = this.get('session.user.isEditor');
-        if (this.get('model.paidOnly')) {
-            return 'all paid members';
+    countPaidMembers: action(function () {
+        // TODO: remove editor conditional once editors can query member counts
+        if (['free', 'paid'].includes(this.model.sendEmailWhenPublished) && !this.session.get('user.isEditor')) {
+            this.countPaidMembersTask.perform();
         }
-
-        if (isEditor) {
-            return 'all members';
-        }
-
-        return pluralize(this.get('model.memberCount'), 'member');
     }),
 
-    confirmAndCheckError: task(function* () {
+    countPaidMembersTask: task(function* () {
+        const result = yield this.store.query('member', {filter: 'subscribed:true', paid: true, limit: 1, page: 1});
+        this.set('paidMemberCount', result.meta.pagination.total);
+        const freeMemberCount = this.model.memberCount - result.meta.pagination.total;
+        this.set('freeMemberCount', freeMemberCount);
+    }),
+
+    confirmAndCheckErrorTask: task(function* () {
         try {
             yield this.confirm();
             this.closeModal();

@@ -47,7 +47,8 @@
     cursor: default;
 }
 
-/* Members */
+/* Members settings */
+/* ------------------------------------------------ */
 
 .gh-labs-members-radio {
     cursor: pointer;
@@ -140,7 +141,12 @@
     overflow-y: hidden;
     transition: all 0.2s ease-in-out;
     opacity: 0;
-    margin-top: 18px;
+    margin-top: 16px;
+    margin-bottom: 0;
+}
+
+.gh-members-connect-savecontainer.expanded {
+    margin-bottom: 20px;
 }
 
 .gh-members-connect-savecontainer.expanded {
@@ -169,6 +175,19 @@
     .gh-members-stripe-info {
         width: 100%;
     }
+}
+
+.gh-labs-members-emailinput {
+
+}
+
+.gh-labs-members-emaildropdown {
+    min-width: 208px;
+    margin-left: 8px;
+}
+
+.gh-labs-members-defaultemaildd {
+    padding-right: 216px;
 }
 
 .gh-labs-mailgun-region {

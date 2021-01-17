@@ -8,7 +8,6 @@ import {
     isRequestEntityTooLargeError,
     isUnsupportedMediaTypeError
 } from 'ghost-admin/services/ajax';
-import {computed} from '@ember/object';
 import {isBlank} from '@ember/utils';
 import {isArray as isEmberArray} from '@ember/array';
 import {run} from '@ember/runloop';
@@ -43,8 +42,6 @@ export default Controller.extend({
     session: service(),
     settings: service(),
 
-    queryParams: ['fromAddressUpdate'],
-    fromAddressUpdate: null,
     importErrors: null,
     importSuccessful: false,
     showDeleteAllModal: false,
@@ -70,16 +67,6 @@ export default Controller.extend({
         // so explicitly allow the `yaml` extension.
         this.yamlAccept = [...this.yamlMimeType, ...Array.from(this.yamlExtension, extension => '.' + extension)];
     },
-
-    fromAddress: computed(function () {
-        return this.parseFromAddress();
-    }),
-
-    blogDomain: computed('config.blogDomain', function () {
-        let blogDomain = this.config.blogDomain || '';
-        const domainExp = blogDomain.replace('https://', '').replace('http://', '').match(new RegExp('^([^/:?#]+)(?:[/:?#]|$)', 'i'));
-        return (domainExp && domainExp[1]) || '';
-    }),
 
     actions: {
         onUpload(file) {
@@ -174,18 +161,6 @@ export default Controller.extend({
                 .closest('.gh-setting-action')
                 .find('input[type="file"]')
                 .click();
-        },
-
-        setDefaultContentVisibility(value) {
-            this.set('settings.defaultContentVisibility', value);
-        },
-
-        setStripeConnectIntegrationTokenSetting(stripeConnectIntegrationToken) {
-            this.set('settings.stripeConnectIntegrationToken', stripeConnectIntegrationToken);
-        },
-
-        setFromAddress(fromAddress) {
-            this.set('fromAddress', fromAddress);
         }
     },
 
@@ -230,22 +205,6 @@ export default Controller.extend({
         return RSVP.resolve();
     },
 
-    parseFromAddress() {
-        const fromAddress = this.settings.get('membersFromAddress') || 'noreply';
-        // Adds default domain as site domain
-        if (fromAddress.indexOf('@') < 0 && this.blogDomain) {
-            return `${fromAddress}@${this.blogDomain}`;
-        }
-        return fromAddress;
-    },
-
-    saveSettings: task(function* () {
-        const response = yield this.settings.save();
-        // Reset from address value on save
-        this.set('fromAddress', this.parseFromAddress());
-        return response;
-    }).drop(),
-
     redirectUploadResult: task(function* (success) {
         this.set('redirectSuccess', success);
         this.set('redirectFailure', !success);
@@ -271,9 +230,5 @@ export default Controller.extend({
     reset() {
         this.set('importErrors', null);
         this.set('importSuccessful', false);
-        this.set('fromAddressUpdate', null);
-        // stripeConnectIntegrationToken is not a persisted value so we don't want
-        // to keep it around across transitions
-        this.settings.set('stripeConnectIntegrationToken', undefined);
     }
 });

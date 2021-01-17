@@ -12,6 +12,7 @@
     @deselectCard={{action this.deselectCard}}
     @editCard={{action this.editCard}}
     @saveCard={{action this.saveCard}}
+    @saveAsSnippet={{this.saveAsSnippet}}
     @editor={{this.editor}}
 >
     {{#if this.isEditing}}
@@ -78,7 +79,7 @@
                                 </button>
                             {{else}}
 
-                                <h3>Uploading {{pluralize upload.files.length "image"}}...</h3>
+                                <h3>Uploading {{gh-pluralize upload.files.length "image"}}...</h3>
                                 {{upload.progressBar}}
                             {{/if}}
                         </div>

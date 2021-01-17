@@ -116,11 +116,11 @@
 }
 
 .gh-nav-menu-dropdown .dropdown-menu {
-    top: -315px;
-    left: 30px;
+    top: -344px;
+    left: 20px;
     margin: 10px 0 0;
     box-shadow: 0 0 1px rgba(0, 0, 0, 0.1), 0 0 3px rgba(0, 0, 0, 0.08), 0 18px 45px -5px rgba(0, 0, 0, 0.15);
-    min-width: 244px;
+    min-width: 280px;
     padding: 6px 0;
 }
 
@@ -129,7 +129,7 @@
     font-size: 1.4rem;
     margin: 0;
     width: unset;
-    padding: 7px 14px 8px;
+    padding: 10px 24px 11px;
 }
 
 .gh-nav-menu-dropdown .dropdown-menu>li>button {
@@ -446,7 +446,7 @@
 }
 
 .gh-nav-bottom {
-    margin: 12px 5px 24px;
+    margin: 0 5px;
 }
 
 .gh-nav-bottom .ember-basic-dropdown-trigger:hover {
@@ -639,6 +639,12 @@
         padding-bottom: 55px;
     }
 
+    @supports (padding-bottom: env(safe-area-inset-bottom)) {
+        .gh-viewport {
+            padding-bottom: calc(55px + env(safe-area-inset-bottom, 0px));
+        }
+    }
+
     .gh-mobile-nav-bar {
         display: flex;
         align-items: center;
@@ -649,6 +655,12 @@
         right: 0;
         background: #fff;
         border-top: var(--lightgrey) 1px solid;
+    }
+
+    @supports (padding-bottom: env(safe-area-inset-bottom)) {
+        .gh-mobile-nav-bar {
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
     }
 
     .gh-mobile-nav-bar a,

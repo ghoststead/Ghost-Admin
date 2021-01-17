@@ -12,6 +12,7 @@
     @toggleSection={{action "toggleSection"}}
     @toggleHeaderSection={{action "toggleHeaderSection"}}
     @editLink={{action "editLink"}}
+    @addSnippet={{this.addSnippetIfPossible}}
 />
 
 {{!-- pop-up link hover toolbar --}}
@@ -34,27 +35,40 @@
     />
 {{/if}}
 
+{{!-- pop-up snippet editing toolbar --}}
+{{#if this.snippetRange}}
+    <KoenigSnippetInput
+        @editor={{this.editor}}
+        @snippetRange={{this.snippetRange}}
+        @snippetRect={{this.snippetRect}}
+        @save={{@saveSnippet}}
+        @cancel={{this.cancelAddSnippet}}
+    />
+{{/if}}
+
 {{!-- (+) icon and pop-up menu --}}
 <KoenigPlusMenu
     @editor={{this.editor}}
     @editorRange={{this.selectedRange}}
+    @snippets={{this.snippets}}
+    @deleteSnippet={{this.deleteSnippet}}
     @replaceWithCardSection={{action "replaceWithCardSection"}}
+    @replaceWithPost={{action "replaceWithPost"}}
 />
 
 {{!-- slash menu popup --}}
 <KoenigSlashMenu
     @editor={{this.editor}}
     @editorRange={{this.selectedRange}}
+    @snippets={{this.snippets}}
+    @deleteSnippet={{this.deleteSnippet}}
     @replaceWithCardSection={{action "replaceWithCardSection"}}
+    @replaceWithPost={{action "replaceWithPost"}}
 />
 
 {{!-- all component cards wormholed into the editor canvas --}}
 {{#each this.componentCards as |card|}}
-    {{!--
-        TODO: move to the public {{in-element}} API when it's available
-        https://github.com/cibernox/rfcs/blob/make-in-element-public/text/0000-promote-in-element-to-public-api.md
-    --}}
-    {{#-in-element card.destinationElement}}
+    {{#in-element card.destinationElement}}
         {{component card.componentName
             editor=this.editor
             postModel=card.postModel
@@ -72,10 +86,11 @@
             deselectCard=(action "deselectCard" card)
             editCard=(action "editCard" card)
             deleteCard=(action "deleteCard" card)
+            saveAsSnippet=(if this.saveCardAsSnippetIfPossible (fn this.saveCardAsSnippetIfPossible card))
             moveCursorToPrevSection=(action "moveCursorToPrevSection" card)
             moveCursorToNextSection=(action "moveCursorToNextSection" card)
             addParagraphAfterCard=(action "addParagraphAfterCard" card)
             registerComponent=(action (mut card.component))
         }}
-    {{/-in-element}}
+    {{/in-element}}
 {{/each}}

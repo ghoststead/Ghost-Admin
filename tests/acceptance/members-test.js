@@ -43,7 +43,7 @@ describe('Acceptance: Members', function () {
         });
 
         it('shows sidebar link which navigates to members list', async function () {
-            await visit('/settings/labs');
+            await visit('/settings/labs/members');
             await click('#labs-members');
             await visit('/');
 
@@ -86,15 +86,15 @@ describe('Acceptance: Members', function () {
             await wait();
 
             // it shows selected member form
-            expect(find('.gh-member-settings-primary input[name="name"]').value, 'loads correct member into form')
+            expect(find('[data-test-input="member-name"]').value, 'loads correct member into form')
                 .to.equal(member1.name);
 
-            expect(find('.gh-member-settings-primary input[name="email"]').value, 'loads correct email into form')
+            expect(find('[data-test-input="member-email"]').value, 'loads correct email into form')
                 .to.equal(member1.email);
 
             // trigger save
-            await fillIn('.gh-member-settings-primary input[name="name"]', 'New Name');
-            await blur('.gh-member-settings-primary input[name="name"]');
+            await fillIn('[data-test-input="member-name"]', 'New Name');
+            await blur('[data-test-input="member-name"]');
 
             await click('[data-test-button="save"]');
 
@@ -144,75 +144,21 @@ describe('Acceptance: Members', function () {
             });
 
             // save new member
-            await fillIn('.gh-member-settings-primary input[name="name"]', 'New Name');
-            await blur('.gh-member-settings-primary input[name="name"]');
+            await fillIn('[data-test-input="member-name"]', 'New Name');
+            await blur('[data-test-input="member-name"]');
 
-            await fillIn('.gh-member-settings-primary input[name="email"]', 'example@domain.com');
-            await blur('.gh-member-settings-primary input[name="email"]');
+            await fillIn('[data-test-input="member-email"]', 'example@domain.com');
+            await blur('[data-test-input="member-email"]');
 
             await click('[data-test-button="save"]');
 
             await wait();
 
-            expect(find('.gh-member-settings-primary input[name="name"]').value, 'name has been preserved')
+            expect(find('[data-test-input="member-name"]').value, 'name has been preserved')
                 .to.equal('New Name');
 
-            expect(find('.gh-member-settings-primary input[name="email"]').value, 'email has been preserved')
+            expect(find('[data-test-input="member-email"]').value, 'email has been preserved')
                 .to.equal('example@domain.com');
         });
-    });
-
-    describe('bulk editing', function () {
-        beforeEach(async function () {
-            this.server.loadFixtures('configs');
-
-            let role = this.server.create('role', {name: 'Owner'});
-            this.server.create('user', {roles: [role]});
-
-            return await authenticateSession();
-        });
-
-        it('can bulk delete all members', async function () {
-            this.server.createList('member', 100);
-
-            await visit('/members');
-
-            expect(find('[data-test-list-header]'), 'initial list header text').to.contain.text('100 members');
-            expect(find('[data-test-edit-overlay]'), 'initial header edit overlay').to.not.exist;
-
-            await click('[data-test-button="edit"]');
-
-            expect(find('[data-test-edit-overlay]'), 'edit mode overlay').to.exist;
-            expect(find('[data-test-label="selection"'), 'initial selection label').to.contain.text('Select all (100)');
-            expect(find('[data-test-button="delete"]'), 'initial delete button').to.have.attribute('disabled');
-
-            await click('[data-test-checkbox="select-all"]');
-
-            expect(find('[data-test-label="selection"'), 'post-select-all selection label').to.contain.text('All items selected');
-            expect(find('[data-test-button="delete"]'), 'post-select-all delete button').to.not.have.attribute('disabled');
-
-            await click('[data-test-button="delete"]');
-
-            expect(find('[data-test-modal="delete-members"]'), 'post-delete-click delete modal').to.exist;
-            expect(find('[data-test-state="delete-unconfirmed"]'), 'post-delete-click unconfirmed state').to.exist;
-            expect(find('[data-test-text="delete-count"]'), 'confirm delete count').to.contain.text('100 members');
-
-            await click('[data-test-button="confirm"]');
-
-            expect(find('[data-test-no-members]'), 'background no-members state').to.exist;
-            expect(find('[data-test-state="delete-complete"]'), 'post-confirm complete state').to.exist;
-            expect(find('[data-test-text="deleted-count"]'), 'post-confirm delete count').to.contain.text('100');
-            expect(find('[data-test-bulk-delete-errors]'), 'post-confirm errors').to.not.exist;
-
-            await click('[data-test-button="close-modal"');
-
-            expect(find('[data-test-modal="delete-members"]'), 'post-close delete modal').to.not.exist;
-        });
-
-        it('can handle bulk delete outright error');
-        it('can handle partial delete success');
-        it('can bulk delete all members with a filter');
-        it('can bulk delete all members with a search');
-        it('can bulk delete all paid/free members');
     });
 });

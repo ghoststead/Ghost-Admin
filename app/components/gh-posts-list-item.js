@@ -1,23 +1,28 @@
 import Component from '@glimmer/component';
+import {action} from '@ember/object';
 import {formatPostTime} from 'ghost-admin/helpers/gh-format-post-time';
 import {inject as service} from '@ember/service';
+import {tracked} from '@glimmer/tracking';
 
 export default class GhPostsListItemComponent extends Component {
+    @service feature;
     @service session;
     @service settings;
+
+    @tracked isHovered = false;
 
     get authorNames() {
         return this.args.post.authors.map(author => author.name || author.email).join(', ');
     }
 
+    get sendEmailWhenPublished() {
+        let {post} = this.args;
+        return post.emailRecipientFilter && post.emailRecipientFilter !== 'none';
+    }
+
     get scheduledText() {
         let {post} = this.args;
         let text = [];
-
-        if (post.sendEmailWhenPublished) {
-            let paid = post.visibility === 'paid';
-            text.push(`and sent to ${paid ? 'paid' : 'all'} members`);
-        }
 
         let formattedTime = formatPostTime(
             post.publishedAtUTC,
@@ -26,5 +31,15 @@ export default class GhPostsListItemComponent extends Component {
         text.push(formattedTime);
 
         return text.join(' ');
+    }
+
+    @action
+    mouseOver() {
+        this.isHovered = true;
+    }
+
+    @action
+    mouseLeave() {
+        this.isHovered = false;
     }
 }

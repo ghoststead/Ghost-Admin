@@ -4,8 +4,8 @@ import boundOneWay from 'ghost-admin/utils/bound-one-way';
 import config from 'ghost-admin/config/environment';
 import isNumber from 'ghost-admin/utils/isNumber';
 import moment from 'moment';
+import {action, computed} from '@ember/object';
 import {alias, mapBy} from '@ember/object/computed';
-import {computed} from '@ember/object';
 import {inject as controller} from '@ember/controller';
 import {get} from '@ember/object';
 import {htmlSafe} from '@ember/string';
@@ -102,6 +102,7 @@ export default Controller.extend({
     showReAuthenticateModal: false,
     showEmailPreviewModal: false,
     showUpgradeModal: false,
+    showDeleteSnippetModal: false,
     hostLimitError: null,
     // koenig related properties
     wordcount: null,
@@ -136,6 +137,22 @@ export default Controller.extend({
         set(key, value) {
             return value;
         }
+    }),
+
+    _snippets: computed(function () {
+        return this.store.peekAll('snippet');
+    }),
+
+    snippets: computed('_snippets.@each.isNew', function () {
+        return this._snippets.reject(snippet => snippet.get('isNew'));
+    }),
+
+    canManageSnippets: computed('session.user.{isOwnerOrAdmin,isEditor}', function () {
+        let {user} = this.session;
+        if (user.get('isOwnerOrAdmin') || user.get('isEditor')) {
+            return true;
+        }
+        return false;
     }),
 
     _autosaveRunning: computed('_autosave.isRunning', '_timedSave.isRunning', function () {
@@ -284,6 +301,35 @@ export default Controller.extend({
         }
     },
 
+    saveSnippet: action(function (snippet) {
+        let snippetRecord = this.store.createRecord('snippet', snippet);
+        return snippetRecord.save().then(() => {
+            this.notifications.closeAlerts('snippet.save');
+            this.notifications.showNotification(
+                `Snippet saved as "${snippet.name}"`,
+                {type: 'success'}
+            );
+            return snippetRecord;
+        }).catch((error) => {
+            if (!snippetRecord.errors.isEmpty) {
+                this.notifications.showAlert(
+                    `Snippet save failed: ${snippetRecord.errors.messages.join('. ')}`,
+                    {type: 'error', key: 'snippet.save'}
+                );
+            }
+            snippetRecord.rollbackAttributes();
+            throw error;
+        });
+    }),
+
+    toggleDeleteSnippetModal: action(function (snippet) {
+        this.set('snippetToDelete', snippet);
+    }),
+
+    deleteSnippet: action(function (snippet) {
+        return snippet.destroyRecord();
+    }),
+
     /* Public tasks ----------------------------------------------------------*/
 
     // separate task for autosave so that it doesn't override a manual save
@@ -325,11 +371,11 @@ export default Controller.extend({
                 }
             }
 
-            // let the adapter know it should use the `?send_email_when_published` QP when saving
+            // let the adapter know it should use the `?email_recipient_filter` QP when saving
             let isPublishing = status === 'published' && !this.post.isPublished;
             let isScheduling = status === 'scheduled' && !this.post.isScheduled;
             if (options.sendEmailWhenPublished && (isPublishing || isScheduling)) {
-                options.adapterOptions = Object.assign({}, options.adapterOptions, {sendEmailWhenPublished: true});
+                options.adapterOptions = Object.assign({}, options.adapterOptions, {sendEmailWhenPublished: options.sendEmailWhenPublished});
             }
         }
 
@@ -578,6 +624,8 @@ export default Controller.extend({
         } catch (error) {
             this.set('memberCount', 0);
         }
+
+        yield this.store.query('snippet', {limit: 'all'});
     }).restartable(),
 
     /* Public methods --------------------------------------------------------*/
@@ -827,8 +875,7 @@ export default Controller.extend({
     _showScheduledNotification(delayed) {
         let {
             publishedAtUTC,
-            sendEmailWhenPublished,
-            visibility,
+            emailRecipientFilter,
             previewUrl
         } = this.post;
         let publishedAtBlogTZ = moment.tz(publishedAtUTC, this.settings.get('timezone'));
@@ -836,17 +883,12 @@ export default Controller.extend({
         let title = 'Scheduled';
         let description = ['Will be published'];
 
-        if (sendEmailWhenPublished) {
+        if (emailRecipientFilter && emailRecipientFilter !== 'none') {
             description.push('and delivered to');
-
-            if (visibility === 'paid') {
-                description.push('<span><strong>paid members</strong></span>');
-            } else {
-                description.push('<span><strong>all members</strong></span>');
-            }
+            description.push(`<span><strong>${emailRecipientFilter} members</strong></span>`);
         }
 
-        description.push(`on <span><strong>${publishedAtBlogTZ.format('MMM Mo')}</strong></span>`);
+        description.push(`on <span><strong>${publishedAtBlogTZ.format('MMM Do')}</strong></span>`);
 
         description.push(`at <span><strong>${publishedAtBlogTZ.format('HH:mm')}</strong>`);
         if (publishedAtBlogTZ.utcOffset() === 0) {

@@ -1,14 +1,12 @@
 {
   "extends": [
-    "@tryghost:base",
-    "@tryghost:automergeSilentTestLintNonMajor",
-    "@tryghost:automergePatchBranch"
+    "@tryghost:quietJS",
+    "@tryghost:groupCSS"
   ],
   "ignoreDeps": [
     "ember-drag-drop",
     "normalize.css",
     "validator",
-    "ember-in-viewport",
     "codemirror"
   ],
   "ignorePaths": ["lib/koenig-editor/package.json"],
@@ -24,10 +22,6 @@
     {
       "groupName": "ember testing",
       "packageNames": ["ember-mocha", "ember-exam", "testem"]
-    },
-    {
-      "groupName": "css processors",
-      "packagePatterns": ["^postcss", "^css", "autoprefixer"]
     }
   ]
 }

@@ -3,8 +3,7 @@ import ghostPaths from 'ghost-admin/utils/ghost-paths';
 import moment from 'moment';
 import {A} from '@ember/array';
 import {action} from '@ember/object';
-import {formatNumber} from 'ghost-admin/helpers/format-number';
-import {pluralize} from 'ember-inflector';
+import {ghPluralize} from 'ghost-admin/helpers/gh-pluralize';
 import {inject as service} from '@ember/service';
 import {task} from 'ember-concurrency-decorators';
 import {timeout} from 'ember-concurrency';
@@ -33,17 +32,17 @@ export default class MembersController extends Controller {
     queryParams = [
         'label',
         {paidParam: 'paid'},
-        {searchParam: 'search'}
+        {searchParam: 'search'},
+        {orderParam: 'order'}
     ];
 
     @tracked members = A([]);
-    @tracked allSelected = false;
     @tracked searchText = '';
     @tracked searchParam = '';
     @tracked paidParam = null;
     @tracked label = null;
+    @tracked orderParam = null;
     @tracked modalLabel = null;
-    @tracked isEditing = false;
     @tracked showLabelModal = false;
     @tracked showDeleteMembersModal = false;
 
@@ -69,7 +68,7 @@ export default class MembersController extends Controller {
             return 'Search result';
         }
 
-        let count = `${formatNumber(members.length)} ${pluralize(members.length, 'member', {withoutCount: true})}`;
+        let count = ghPluralize(members.length, 'member');
 
         if (selectedLabel && selectedLabel.slug) {
             if (members.length > 1) {
@@ -84,6 +83,27 @@ export default class MembersController extends Controller {
 
     get showingAll() {
         return !this.searchParam && !this.paidParam && !this.label;
+    }
+
+    get availableOrders() {
+        // don't return anything if email analytics is disabled because
+        // we don't want to show an order dropdown with only a single option
+
+        if (this.feature.get('emailAnalytics')) {
+            return [{
+                name: 'Newest',
+                value: null
+            }, {
+                name: 'Open rate',
+                value: 'email_open_rate'
+            }];
+        }
+
+        return [];
+    }
+
+    get selectedOrder() {
+        return this.availableOrders.find(order => order.value === this.orderParam);
     }
 
     get availableLabels() {
@@ -117,20 +137,6 @@ export default class MembersController extends Controller {
         return this.paidParams.findBy('value', this.paidParam) || {value: '!unknown'};
     }
 
-    get selectedCount() {
-        return this.allSelected ? this.members.length : 0;
-    }
-
-    get selectAllLabel() {
-        let {members} = this;
-
-        if (this.allSelected) {
-            return `All items selected (${formatNumber(members.length)})`;
-        } else {
-            return `Select all (${formatNumber(members.length)})`;
-        }
-    }
-
     // Actions -----------------------------------------------------------------
 
     @action
@@ -142,20 +148,8 @@ export default class MembersController extends Controller {
     }
 
     @action
-    toggleEditMode() {
-        if (this.isEditing) {
-            this.resetSelection();
-        } else {
-            this.isEditing = true;
-        }
-    }
-
-    @action
-    toggleSelectAll() {
-        if (this.members.length === 0) {
-            return this.allSelected = false;
-        }
-        this.allSelected = !this.allSelected;
+    changeOrder(order) {
+        this.orderParam = order.value;
     }
 
     @action
@@ -166,7 +160,17 @@ export default class MembersController extends Controller {
     @action
     exportData() {
         let exportUrl = ghostPaths().url.api('members/upload');
-        let downloadURL = `${exportUrl}?limit=all`;
+        let downloadParams = new URLSearchParams();
+        downloadParams.set('limit', 'all');
+        if (this.paidParam !== null) {
+            downloadParams.set('paid', this.paidParam);
+        }
+        if (this.label !== null) {
+            downloadParams.set('filter', `label:${this.label}`);
+        }
+        if (this.searchText !== '') {
+            downloadParams.set('search', this.searchText);
+        }
         let iframe = document.getElementById('iframeDownload');
 
         if (!iframe) {
@@ -175,7 +179,7 @@ export default class MembersController extends Controller {
             iframe.style.display = 'none';
             document.body.append(iframe);
         }
-        iframe.setAttribute('src', downloadURL);
+        iframe.setAttribute('src', `${exportUrl}?${downloadParams.toString()}`);
     }
 
     @action
@@ -245,9 +249,7 @@ export default class MembersController extends Controller {
     @task({restartable: true})
     *fetchMembersTask(params) {
         // params is undefined when called as a "refresh" of the model
-        let {label, paidParam, searchParam} = typeof params === 'undefined' ? this : params;
-
-        this.resetSelection();
+        let {label, paidParam, searchParam, orderParam} = typeof params === 'undefined' ? this : params;
 
         if (!searchParam) {
             this.resetSearch();
@@ -260,10 +262,12 @@ export default class MembersController extends Controller {
         let forceReload = !params
             || label !== this._lastLabel
             || paidParam !== this._lastPaidParam
-            || searchParam !== this._lastSearchParam;
+            || searchParam !== this._lastSearchParam
+            || orderParam !== this._orderParam;
         this._lastLabel = label;
         this._lastPaidParam = paidParam;
         this._lastSearchParam = searchParam;
+        this._lastOrderParam = orderParam;
 
         // unless we have a forced reload, do not re-fetch the members list unless it's more than a minute old
         // keeps navigation between list->details->list snappy
@@ -277,11 +281,12 @@ export default class MembersController extends Controller {
             const labelFilter = label ? `label:'${label}'+` : '';
             const paidQuery = paidParam ? {paid: paidParam} : {};
             const searchQuery = searchParam ? {search: searchParam} : {};
+            const order = orderParam ? `${orderParam} desc` : `created_at desc`;
 
             query = Object.assign({
+                order,
                 limit: range.length,
-                page: range.start / range.length,
-                order: 'created_at desc',
+                page: range.page,
                 filter: `${labelFilter}created_at:<='${moment.utc(this._startDate).format('YYYY-MM-DD HH:mm:ss')}'`
             }, paidQuery, searchQuery, query);
 
@@ -313,7 +318,6 @@ export default class MembersController extends Controller {
 
         // reset and reload
         this.store.unloadAll('member');
-        this.resetSelection();
         this.reload();
 
         return response.meta.stats;
@@ -323,11 +327,6 @@ export default class MembersController extends Controller {
 
     resetSearch() {
         this.searchText = '';
-    }
-
-    resetSelection() {
-        this.isEditing = false;
-        this.allSelected = false;
     }
 
     reload() {

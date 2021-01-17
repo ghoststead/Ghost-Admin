@@ -14,7 +14,7 @@
                 </div>
                 <div class="flex flex-column justify-center">
                     <p class="ma0 pa0 midgrey">Post was sent by email to</p>
-                    <p class="ma0 pa0 f5 lh-solid">{{pluralize this.post.email.emailCount "member"}}</p>
+                    <p class="ma0 pa0 f5 lh-solid">{{gh-pluralize this.post.email.emailCount "member"}}</p>
                 </div>
             </div>
             <div class="pa5 pt3 pb3 f7 bb b--whitegrey">
@@ -22,11 +22,11 @@
                     <tbody>
                         <tr>
                             <td class="pa1 pl0 fw7 f8 w16 v-top lh-copy">Subject:</td>
-                            <td class="pa1 pa0 word-wrap midgrey v-top lh-copy">{{this.post.email.subject}}</td>
+                            <td class="pa1 pa0 midgrey v-top lh-copy">{{this.post.email.subject}}</td>
                         </tr>
                         <tr>
                             <td class="pa1 pl0 fw7 f8 w16 nowrap v-top lh-copy">Sent:</td>
-                            <td class="pa1 pa0 word-wrap midgrey v-top lh-copy">{{gh-format-post-time this.post.email.createdAtUTC}}</td>
+                            <td class="pa1 pa0 midgrey v-top lh-copy">{{gh-format-post-time this.post.email.createdAtUTC}}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -45,7 +45,7 @@
                 </div>
                 <div class="flex flex-column justify-center">
                     <p class="ma0 pa0 midgrey">Post failed to send to</p>
-                    <p class="ma0 pa0 f5 lh-solid">{{pluralize this.post.email.emailCount "member"}}</p>
+                    <p class="ma0 pa0 f5 lh-solid">{{gh-pluralize this.post.email.emailCount "member"}}</p>
                 </div>
             </div>
             <div class="pa5 pt3 pb3 f7 bb b--whitegrey">
@@ -61,7 +61,7 @@
                         <tbody>
                             <tr>
                                 <td class="pa1 pl0 fw7 f8 w16 v-top lh-copy">Error:</td>
-                                <td class="pa1 pl0 word-wrap midgrey v-top lh-copy">{{this.post.email.error}}</td>
+                                <td class="pa1 pl0 midgrey v-top lh-copy">{{this.post.email.error}}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -89,7 +89,7 @@
     {{else}}
         {{!-- Mail not sent yet --}}
         {{#if this.mailgunError}}
-            <p class="gh-box gh-box-warning settings-menu-mailgun-warning">
+            <p class="gh-box gh-box-alert settings-menu-mailgun-alert">
                 {{svg-jar "info" class="w5 h5 fill-yellow nl1"}}
                 You need to configure Mailgun in <LinkTo @route="settings.labs" data-test-nav="labs">Labs → Members settings</LinkTo> to enable email newsletters.
             </p>
